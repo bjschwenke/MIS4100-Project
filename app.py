@@ -28,7 +28,6 @@ class SalesDetails(QMainWindow):
         self.main_window = main_window
         self.setWindowTitle("Sales Details")
         self.setGeometry(150, 150, 800, 600)
-
         main_widget = QWidget()
         main_layout = QVBoxLayout()
 
@@ -46,13 +45,41 @@ class SalesDetails(QMainWindow):
         main_layout.addLayout(header_layout)
 
         # Sales Table
-        self.sales_table = QTableWidget(10, 6)
-        self.sales_table.setHorizontalHeaderLabels(["Date", "UPC", "Description", "AMT", "Qty", "Weight"])
+        self.sales_table = QTableWidget()
+        self.sales_table.setColumnCount(6)  # Adjust this if your table has different columns
+        self.sales_table.setHorizontalHeaderLabels(["Date", "UPC", "Description", "AMT", "Qty", "Wgt"])
         main_layout.addWidget(self.sales_table)
         
+        self.load_data()
+
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
-    
+        
+    def load_data(self):
+        try:
+            connection = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="73173359",
+                database="TestProductManagement"
+            )
+            cursor = connection.cursor()
+
+            cursor.execute("SELECT Date, Upc, Description, AMT, Qty, Wgt FROM salesdetails")
+            records = cursor.fetchall()
+
+            self.sales_table.setRowCount(len(records))
+
+            for row_idx, row_data in enumerate(records):
+                for col_idx, value in enumerate(row_data):
+                    self.sales_table.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
+
+            cursor.close()
+            connection.close()
+
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+
     def go_home(self):
         self.close()
         self.main_window.show()
@@ -80,7 +107,37 @@ class SalesDetails(QMainWindow):
         start_date = self.start_calendar.selectedDate().toString("yyyy-MM-dd")
         end_date = self.end_calendar.selectedDate().toString("yyyy-MM-dd")
         print(f"Filtering sales from {start_date} to {end_date}")
+        self.filter_sales_by_date(start_date, end_date)
         self.calendar.close()
+
+    def filter_sales_by_date(self, start_date, end_date):
+        try:
+            db = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="73173359",
+                database="TestProductManagement"
+            )
+            cursor = db.cursor()
+
+            query = """
+            SELECT Date, Upc, Description, AMT, Qty, Weight FROM salesdetails 
+            WHERE Date BETWEEN %s AND %s 
+            ORDER BY Date ASC;
+            """
+            cursor.execute(query, (start_date, end_date))
+            results = cursor.fetchall()
+
+            self.sales_table.setRowCount(len(results))
+            for row_idx, row_data in enumerate(results):
+                for col_idx, value in enumerate(row_data):
+                    self.sales_table.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
+
+        except mysql.connector.Error as err:
+            print("Error:", err)
+        finally:
+            cursor.close()
+            db.close()
 
 class OrderDetails(QMainWindow):
     def __init__(self, main_window):
@@ -210,9 +267,6 @@ class OrderDetails(QMainWindow):
         finally:
             cursor.close()
             db.close()
-
-
-
 
 
 class DraftOrderDetails(QMainWindow):
@@ -356,8 +410,7 @@ class AddItemDialog(QDialog):
 
         self.labels = ["UPC", "VendorID", "VendorCode", "UOM", "BaseCost", "CaseSize", "Brand",
                     "Quantity", "Description", "Size", "VolWeight", "Measure", "SubDepartment",
-                    "Deposit", "Scalable", "Price", "SalePrice", "Category", "Report", "DateReceived",
-                    "ExpirationDate"]
+                    "Deposit", "Scalable", "Price", "SalePrice", "DateReceived"]
         
         for label in self.labels:
             self.fields[label] = QLineEdit()
@@ -540,9 +593,9 @@ class InventoryDashboard(QMainWindow):
         # Search and Filter Section
         search_layout = QHBoxLayout()
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search Inventory...")
-        search_button = QPushButton("Search")
-        search_button.clicked.connect(self.search_inventory)
+        self.search_bar.setPlaceholderText("Search by UPC...")
+        self.search_button = QPushButton("Search")
+        self.search_button.clicked.connect(self.search_inventory)
 
         self.add_button = QPushButton("+")
         self.add_button.setStyleSheet("font-size: 18px; width: 30px; height: 30px;")
@@ -555,36 +608,22 @@ class InventoryDashboard(QMainWindow):
         search_layout.addWidget(self.menu_button)
         search_layout.addWidget(self.add_button)
         search_layout.addWidget(self.search_bar)
-        search_layout.addWidget(search_button)
-
-
-        # Filters
-        self.filters = {
-            "Fresh && Dairy": QCheckBox("Fresh && Dairy"),
-            "Grocery": QCheckBox("Grocery"),
-            "Health && Professional": QCheckBox("Health && Professional"),
-            "Household && More": QCheckBox("Household && More"),
-            "Special Diets": QCheckBox("Special Diets")
-        }
-        for checkbox in self.filters.values():
-            search_layout.addWidget(checkbox)
+        search_layout.addWidget(self.search_button)
 
 
         main_layout.addLayout(search_layout)
 
-
         # Inventory Table (Make sure this is 'self.table' here)
         self.columns = ["UPC", "VendorID", "VendorCode", "UOM", "BaseCost", "CaseSize", "Brand",
                         "Quantity", "Description", "Size", "VolWeight", "Measure", "SubDepartment",
-                        "Deposit", "Scalable", "Price", "SalePrice", "Category", "Report", "DateReceived",
-                        "ExpirationDate"]
-        self.table = QTableWidget()
-        self.table.setColumnCount(len(self.columns))
-        self.table.setHorizontalHeaderLabels(self.columns)
-        main_layout.addWidget(self.table)
+                        "Deposit", "Scalable", "Price", "SalePrice", "DateReceived"]
+        self.inventory_table = QTableWidget()
+        self.inventory_table.setColumnCount(len(self.columns))
+        self.inventory_table.setHorizontalHeaderLabels(self.columns)
+        main_layout.addWidget(self.inventory_table)
 
         # Load data from MySQL
-        self.load_data()
+        self.load_inventory_data()
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
@@ -601,12 +640,10 @@ class InventoryDashboard(QMainWindow):
 
         # Additional Sections
         sections_layout = QHBoxLayout()
-        self.running_low_table = self.create_section("Running Low", ["UPC", "Quantity", "Sub-Department", "Vendor ID"])
-        self.expiring_soon_table = self.create_section("Expiring Soon", ["UPC", "Sub-Department", "Date Received", "Description", "Expiration Date"])
         self.sales_table = self.create_sales_section()
+        self.running_low_table = self.create_running_low_section()
 
         sections_layout.addWidget(self.running_low_table)
-        sections_layout.addWidget(self.expiring_soon_table)
         sections_layout.addWidget(self.sales_table)
 
         main_layout.addLayout(sections_layout)
@@ -614,7 +651,7 @@ class InventoryDashboard(QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
-   def load_data(self):
+   def load_inventory_data(self):
         """Fetch inventory data from MySQL and populate the table."""
         try:
             # Connect to MySQL database
@@ -632,12 +669,12 @@ class InventoryDashboard(QMainWindow):
             records = cursor.fetchall()
 
             # Set row count dynamically based on the number of records
-            self.table.setRowCount(len(records))
+            self.inventory_table.setRowCount(len(records))
 
             # Populate the table with MySQL data
             for row_idx, row_data in enumerate(records):
                 for col_idx, value in enumerate(row_data):
-                    self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
+                    self.inventory_table.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
 
             # Close database connection
             cursor.close()
@@ -651,8 +688,8 @@ class InventoryDashboard(QMainWindow):
  
    def update_columns(self):
        visible_columns = [col for col, action in self.column_actions.items() if action.isChecked()]
-       self.table.setColumnCount(len(visible_columns))
-       self.table.setHorizontalHeaderLabels(visible_columns)
+       self.inventory_table.setColumnCount(len(visible_columns))
+       self.inventory_table.setHorizontalHeaderLabels(visible_columns)
 
    def create_section(self, title, columns):
        widget = QWidget()
@@ -675,9 +712,12 @@ class InventoryDashboard(QMainWindow):
        label.setStyleSheet("font-size: 18px; font-weight: bold;")
        layout.addWidget(label)
      
-       table = QTableWidget(10,6)
-       table.setHorizontalHeaderLabels(["Date", "UPC", "Description", "AMT", "Qty", "Weight"])
-       layout.addWidget(table)
+       # Create the table widget
+       self.sales_table = QTableWidget()
+       layout.addWidget(self.sales_table)
+
+       # Load data from MySQL
+       self.load_sales_data()
      
        self.more_info_button = QPushButton("More Info")
        self.more_info_button.clicked.connect(self.show_sales_details)
@@ -686,7 +726,7 @@ class InventoryDashboard(QMainWindow):
        widget.setLayout(layout)
        return widget
    
-   def load_table_data(self):
+   def load_sales_data(self):
         try:
             # Replace with your actual connection info
             connection = mysql.connector.connect(
@@ -698,7 +738,6 @@ class InventoryDashboard(QMainWindow):
 
             cursor = connection.cursor()
 
-            # Replace "orders" with your table name
             query = "SELECT * FROM sales;"
             cursor.execute(query)
 
@@ -706,14 +745,69 @@ class InventoryDashboard(QMainWindow):
             columns = [desc[0] for desc in cursor.description]
 
             # Set up table
-            self.table.setColumnCount(len(columns))
-            self.table.setRowCount(len(rows))
-            self.table.setHorizontalHeaderLabels(columns)
+            self.sales_table.setColumnCount(len(columns))
+            self.sales_table.setRowCount(len(rows))
+            self.sales_table.setHorizontalHeaderLabels(columns)
 
             for row_idx, row_data in enumerate(rows):
                 for col_idx, value in enumerate(row_data):
                     item = QTableWidgetItem(str(value))
-                    self.table.setItem(row_idx, col_idx, item)
+                    self.sales_table.setItem(row_idx, col_idx, item)
+
+        except mysql.connector.Error as err:
+            print("Database error:", err)
+        finally:
+            if connection.is_connected():
+                cursor.close()
+                connection.close()
+    
+   def create_running_low_section(self):
+    widget = QWidget()
+    layout = QVBoxLayout()
+
+    # Title Label
+    label = QLabel("Running Low")
+    label.setStyleSheet("font-size: 18px; font-weight: bold;")
+    layout.addWidget(label)
+
+    # Create the table widget
+    self.running_low_table = QTableWidget()
+    layout.addWidget(self.running_low_table)
+
+    # Load data from MySQL for running low items
+    self.load_running_low_data()
+
+    # Set layout for the widget
+    widget.setLayout(layout)
+    return widget
+
+   def load_running_low_data(self):
+        try:
+            # Replace with your actual connection info
+            connection = mysql.connector.connect(
+                host="localhost",          # e.g., "localhost"
+                user="root",      # e.g., "root"
+                password="73173359",
+                database="TestProductManagement"   # e.g., "inventory_db"
+            )
+
+            cursor = connection.cursor()
+
+            query = "SELECT * FROM runninglow ORDER BY Qty ASC;"
+            cursor.execute(query)
+
+            rows = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+
+            # Set up table
+            self.running_low_table.setColumnCount(len(columns))
+            self.running_low_table.setRowCount(len(rows))
+            self.running_low_table.setHorizontalHeaderLabels(columns)
+
+            for row_idx, row_data in enumerate(rows):
+                for col_idx, value in enumerate(row_data):
+                    item = QTableWidgetItem(str(value))
+                    self.running_low_table.setItem(row_idx, col_idx, item)
 
         except mysql.connector.Error as err:
             print("Database error:", err)
@@ -723,11 +817,45 @@ class InventoryDashboard(QMainWindow):
                 connection.close()
 
    def search_inventory(self):
-       query = self.search_bar.text()
-       selected_filters = [key for key, checkbox in self.filters.items() if checkbox.isChecked()]
-       print(f"Searching for: {query} with filters {selected_filters}")
-       # This is where the database connection will be added later
-     
+       search_term = self.search_bar.text()
+       if not search_term:
+        return  # Don’t run a blank search
+
+       try:
+        connection = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="73173359",
+            database="TestProductManagement"
+        )
+        cursor = connection.cursor()
+
+        # Modify table/column as needed
+        query = """
+            SELECT * FROM Inventory
+            WHERE Upc LIKE %s
+        """
+        like_pattern = f"%{search_term}%"
+        cursor.execute(query, (like_pattern,))
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+
+        # Populate your QTableWidget
+        self.inventory_table.setRowCount(len(results))
+        self.inventory_table.setColumnCount(len(columns))
+        self.inventory_table.setHorizontalHeaderLabels(columns)
+
+        for row_idx, row_data in enumerate(results):
+            for col_idx, value in enumerate(row_data):
+                self.inventory_table.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
+
+       except mysql.connector.Error as err:
+        print("Database error:", err)
+       finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+    
    def show_add_item_dialog(self):
        dialog = AddItemDialog()
        if dialog.exec():
@@ -747,6 +875,7 @@ class InventoryDashboard(QMainWindow):
        self.sales_details_window = SalesDetails(self)
        self.sales_details_window.show()
        self.hide()
+
 
    def show_order_details(self):
        self.order_details_window = OrderDetails(self)
