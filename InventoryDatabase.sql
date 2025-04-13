@@ -37,37 +37,37 @@ CREATE TABLE Inventory (
 Create table if not exists `sales`(
 	`Date` date not null,
 	`UPC` BIGINT not null,
-    `Description` MEDIUMTEXT not null,
-    `AMT` Decimal (10,2) not null,
-    `Qty` int not null,
-    `Wgt` Decimal (10,5) null
+	`Description` MEDIUMTEXT not null,
+	`AMT` Decimal (10,2) not null,
+	`Qty` int not null,
+	`Wgt` Decimal (10,5) null
 );
 Create table if not exists `orders`(
 	`Date` date not null,
-    `Upc` BIGINT,
-    `VendorCode` Int,
-    `Cases` Int
+	`Upc` BIGINT,
+	`VendorCode` Int,
+	`Cases` Int
 );
 Create table if not exists `draftorders`(
 	`Date` date not null,
-    `Upc` BIGINT,
-    `VendorCode` Int,
-    `Cases` Int
+	`Upc` BIGINT,
+	`VendorCode` Int,
+	`Cases` Int
 );
 Create table if not exists `runninglow`(
 	`Upc` bigint not null,
-    `Qty` int not null,
+	`Qty` int not null,
 	`Sub-Department` varchar(10),
-    `VendorID` int not null
+	`VendorID` int not null
 );
 
 create table if not exists `salesdetails`(
 	`Date` date not null,
 	`UPC` BIGINT not null,
-    `Description` MEDIUMTEXT not null,
-    `AMT` Decimal (10,2) not null,
-    `Qty` int not null,
-    `Wgt` Decimal (10,5) null
+	`Description` MEDIUMTEXT not null,
+	`AMT` Decimal (10,2) not null,
+	`Qty` int not null,
+	`Wgt` Decimal (10,5) null
 );
 
 INSERT INTO sales (Date, UPC, Description, AMT, Qty, Wgt)
