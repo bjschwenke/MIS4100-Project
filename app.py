@@ -739,10 +739,10 @@ class InventoryDashboard(QMainWindow):
     def load_running_low_data(self):
         try:
             connection = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="73173359",
-                database="TestProductManagement"
+                host="INSERTHOSTNAMEHERE", # Replace with your hostname
+                user="INSERTUSERHERE", # Replace with your user
+                password="INSERTPASSWORDHERE", # Replace with your password
+                database="INSERTDATABASEHERE"# Replace with your database
             )
             cursor = connection.cursor()
 
