@@ -8,19 +8,6 @@ from PyQt6.QtGui import QAction
 import mysql.connector
 from datetime import date
 
-def db():
-    try:
-        connection = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="73173359",
-            database="TestProductManagement"
-        )
-        print("Connected to MySQL successfully!")
-        return connection
-    except mysql.connector.Error as e:
-        print(f"Error connecting to MySQL: {e}")
-        return None
     
 class SalesDetails(QMainWindow):
     def __init__(self, main_window):
