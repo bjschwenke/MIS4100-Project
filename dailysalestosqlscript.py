@@ -3,16 +3,16 @@ import mysql.connector
 
 
 # Load the CSV file
-csv_file = "/Users/brandonschwenke/Downloads/daily-sales-03-29-25-example-clean.csv"  # Replace with your file path
+csv_file = "INSERTFILEPATHTOFILEHERE.csv"  # Replace with your file path
 selected_columns = ['UPC', 'Description', 'Amt', 'Qty', 'Wgt']
 df = pd.read_csv(csv_file, usecols=selected_columns)
 
 # Connect to MySQL Database
 conn = mysql.connector.connect(
-    host="localhost", 
-    user="root", 
-    password="73173359", 
-    database="TestProductManagement"
+    host="INSERTHOSTNAMEHERE", # Replace with your hostname
+    user="INSERTUSERHERE", # Replace with your user
+    password="INSERTPASSWORDHERE", # Replace with your password
+    database="INSERTDATABASEHERE"# Replace with your database
 )
 
 cursor = conn.cursor()
@@ -34,9 +34,7 @@ df["Qty"] = pd.to_numeric(df["Qty"], errors="coerce")  # Convert to number, NaN 
 df = df.dropna(subset=["Qty"])  # Drop rows where Qty is still NaN
 df["Qty"] = df["Qty"].astype(int)  # Convert to integer
 
-
 print(insert_query)
-
 
 # Insert rows into database
 for row in df.itertuples(index=False, name=None):
