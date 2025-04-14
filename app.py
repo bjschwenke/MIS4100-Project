@@ -107,7 +107,7 @@ class SalesDetails(QMainWindow):
             cursor = connection.cursor()
 
             query = """
-            SELECT Date, Upc, Description, AMT, Qty, Weight FROM salesdetails 
+            SELECT Date, Upc, Description, AMT, Qty, Wgt FROM salesdetails 
             WHERE Date BETWEEN %s AND %s 
             ORDER BY Date ASC;
             """
